@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -139,10 +139,16 @@ namespace Nova
         public void OnPointerUp(PointerEventData _eventData)
         {
             var eventData = (ExtendedPointerEventData)_eventData;
+            if (TouchPointerFix.Skip(eventData))
+            {
+                return;
+            }
+
+            // Debug.Log($"OnPointerUp {eventData.pointerId} {eventData.pointerType} {eventData.button} {Utils.GetPath(this)}\n{eventData}");
+
             if (!inputManager.inputEnabled)
             {
-                // Touch finger
-                if (eventData.touchId > 0)
+                if (eventData.pointerType == UIPointerType.Touch)
                 {
                     ClickForward();
                 }
@@ -203,9 +209,7 @@ namespace Nova
             }
             else
             {
-                // Touch finger
-                // (consequent touch will be converted to 1 / 2 / ... due to unknown reason)
-                if (eventData.touchId > 0)
+                if (eventData.pointerType == UIPointerType.Touch)
                 {
                     if (!buttonRingTrigger.buttonShowing && !skipNextTouch && !skipTouchOnPointerUp)
                     {
@@ -222,10 +226,17 @@ namespace Nova
         public void OnPointerDown(PointerEventData _eventData)
         {
             var eventData = (ExtendedPointerEventData)_eventData;
+            if (TouchPointerFix.SkipOrAdd(this, eventData))
+            {
+                return;
+            }
+
+            // Debug.Log($"OnPointerDown {eventData.pointerId} {eventData.pointerType} {eventData.button} {Utils.GetPath(this)}\n{eventData}");
+
             if (!inputManager.inputEnabled)
             {
-                // Mouse left button
-                if (eventData.touchId == 0 && eventData.button == PointerEventData.InputButton.Left)
+                if (eventData.pointerType == UIPointerType.MouseOrPen &&
+                    eventData.button == PointerEventData.InputButton.Left)
                 {
                     ClickForward();
                 }
@@ -257,14 +268,13 @@ namespace Nova
 
             skipTouchOnPointerUp = false;
 
-            // Mouse left button
-            if (eventData.touchId == 0 && eventData.button == PointerEventData.InputButton.Left)
+            if (eventData.pointerType == UIPointerType.MouseOrPen &&
+                eventData.button == PointerEventData.InputButton.Left)
             {
                 ClickForward();
             }
 
-            // Mouse right button or touch finger
-            if (eventData.touchId > 0 || eventData.button == PointerEventData.InputButton.Right)
+            if (eventData.pointerType == UIPointerType.Touch || eventData.button == PointerEventData.InputButton.Right)
             {
                 float r = buttonRingTrigger.sectorRadius * RealScreen.fWidth / 1920 * 0.5f;
                 if (RealInput.mousePosition.x > r && RealInput.mousePosition.x < RealScreen.width - r &&
