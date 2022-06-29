@@ -133,6 +133,16 @@ namespace Nova
 
         [HideInInspector] public RightButtonAction rightButtonAction;
 
+        private bool canTriggerButtonRing
+        {
+            get
+            {
+                var p = RealInput.mousePosition;
+                float r = buttonRingTrigger.sectorRadius * RealScreen.scale * 0.5f;
+                return p.x > r && p.x < RealScreen.width - r && p.y > r && p.y < RealScreen.height - r;
+            }
+        }
+
         private bool skipNextTouch;
         private bool skipTouchOnPointerUp;
 
@@ -189,9 +199,7 @@ namespace Nova
                     }
                     else if (rightButtonAction == RightButtonAction.ShowButtonRing)
                     {
-                        float r = buttonRingTrigger.sectorRadius * RealScreen.fWidth / 1920 * 0.5f;
-                        if (RealInput.mousePosition.x > r && RealInput.mousePosition.x < RealScreen.width - r &&
-                            RealInput.mousePosition.y > r && RealInput.mousePosition.y < RealScreen.height - r)
+                        if (canTriggerButtonRing)
                         {
                             buttonRingTrigger.Show(true);
                         }
@@ -272,13 +280,12 @@ namespace Nova
                 eventData.button == PointerEventData.InputButton.Left)
             {
                 ClickForward();
+                return;
             }
 
             if (eventData.pointerType == UIPointerType.Touch || eventData.button == PointerEventData.InputButton.Right)
             {
-                float r = buttonRingTrigger.sectorRadius * RealScreen.fWidth / 1920 * 0.5f;
-                if (RealInput.mousePosition.x > r && RealInput.mousePosition.x < RealScreen.width - r &&
-                    RealInput.mousePosition.y > r && RealInput.mousePosition.y < RealScreen.height - r)
+                if (canTriggerButtonRing)
                 {
                     buttonRingTrigger.ShowIfMouseMoved();
                 }
