@@ -49,7 +49,7 @@ namespace Nova
             // Hide cursor after an idle time
             if (hideAfterSeconds > 0.0f && Cursor.visible)
             {
-                idleTime += Time.deltaTime;
+                idleTime += Time.unscaledDeltaTime;
                 if (idleTime > hideAfterSeconds)
                 {
                     Cursor.visible = false;
