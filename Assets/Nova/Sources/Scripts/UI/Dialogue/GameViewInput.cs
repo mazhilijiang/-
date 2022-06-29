@@ -51,7 +51,7 @@ namespace Nova
         private void Update()
         {
             HandleShortcut();
-            HandleInput();
+            HandleScroll();
         }
 
         private void HandleShortcutWhenDialogueShown()
@@ -143,9 +143,6 @@ namespace Nova
             }
         }
 
-        private bool skipNextTouch;
-        private bool skipTouchOnPointerUp;
-
         public void OnPointerUp(PointerEventData _eventData)
         {
             var eventData = (ExtendedPointerEventData)_eventData;
@@ -158,7 +155,8 @@ namespace Nova
 
             if (!inputManager.inputEnabled)
             {
-                if (eventData.pointerType == UIPointerType.Touch)
+                if (eventData.pointerType == UIPointerType.Touch ||
+                    eventData.button == PointerEventData.InputButton.Left)
                 {
                     ClickForward();
                 }
@@ -181,53 +179,37 @@ namespace Nova
             if (buttonRingTrigger.buttonShowing)
             {
                 buttonRingTrigger.Hide(!buttonRingTrigger.holdOpen ||
-                                       eventData.button != PointerEventData.InputButton.Right);
+                                       eventData.button == PointerEventData.InputButton.Left);
                 return;
             }
 
-            // Mouse right button
-            // We do not use two-finger tap to simulate right button
-            // if (eventData.button == PointerEventData.InputButton.Right || Input.touchCount == 2)
+            if (eventData.pointerType == UIPointerType.Touch || eventData.button == PointerEventData.InputButton.Left)
+            {
+                var link = dialogueBoxController.FindIntersectingLink(RealInput.mousePosition, UICameraHelper.Active);
+                if (!string.IsNullOrEmpty(link))
+                {
+                    Application.OpenURL(link);
+                    return;
+                }
+
+                ClickForward();
+                return;
+            }
+
             if (eventData.button == PointerEventData.InputButton.Right)
             {
-                if (!buttonRingTrigger.buttonShowing)
+                buttonRingTrigger.NoShowIfMouseMoved();
+                if (rightButtonAction == RightButtonAction.HideDialoguePanel)
                 {
-                    buttonRingTrigger.NoShowIfMouseMoved();
-                    if (rightButtonAction == RightButtonAction.HideDialoguePanel)
+                    dialogueBoxController.Hide();
+                }
+                else if (rightButtonAction == RightButtonAction.ShowButtonRing)
+                {
+                    if (canTriggerButtonRing)
                     {
-                        dialogueBoxController.Hide();
-                    }
-                    else if (rightButtonAction == RightButtonAction.ShowButtonRing)
-                    {
-                        if (canTriggerButtonRing)
-                        {
-                            buttonRingTrigger.Show(true);
-                        }
+                        buttonRingTrigger.Show(true);
                     }
                 }
-                else if (!buttonRingTrigger.holdOpen)
-                {
-                    buttonRingTrigger.Hide(true);
-                }
-
-                // if (Input.touchCount == 2)
-                // {
-                //     skipNextTouch = true;
-                // }
-            }
-            else
-            {
-                if (eventData.pointerType == UIPointerType.Touch)
-                {
-                    if (!buttonRingTrigger.buttonShowing && !skipNextTouch && !skipTouchOnPointerUp)
-                    {
-                        ClickForward();
-                    }
-
-                    buttonRingTrigger.Hide(true);
-                }
-
-                skipNextTouch = false;
             }
         }
 
@@ -241,47 +223,15 @@ namespace Nova
 
             // Debug.Log($"OnPointerDown {eventData.pointerId} {eventData.pointerType} {eventData.button} {Utils.GetPath(this)}\n{eventData}");
 
-            if (!inputManager.inputEnabled)
-            {
-                if (eventData.pointerType == UIPointerType.MouseOrPen &&
-                    eventData.button == PointerEventData.InputButton.Left)
-                {
-                    ClickForward();
-                }
-
-                return;
-            }
-
-            if (viewManager.currentView != CurrentViewType.Game)
-            {
-                return;
-            }
-
-            if (buttonRingTrigger.buttonShowing)
+            if (!inputManager.inputEnabled ||
+                viewManager.currentView != CurrentViewType.Game ||
+                buttonRingTrigger.buttonShowing)
             {
                 return;
             }
 
             // Stop auto/fast forward on any button or touch
             dialogueState.state = DialogueState.State.Normal;
-
-            // Handle hyperlinks on any button or touch
-            var link = dialogueBoxController.FindIntersectingLink(RealInput.mousePosition, UICameraHelper.Active);
-            if (!string.IsNullOrEmpty(link))
-            {
-                Application.OpenURL(link);
-                skipTouchOnPointerUp = true;
-                return;
-            }
-
-            skipTouchOnPointerUp = false;
-
-            if (eventData.pointerType == UIPointerType.MouseOrPen &&
-                eventData.button == PointerEventData.InputButton.Left)
-            {
-                ClickForward();
-                return;
-            }
 
             if (eventData.pointerType == UIPointerType.Touch || eventData.button == PointerEventData.InputButton.Right)
             {
@@ -292,18 +242,19 @@ namespace Nova
             }
         }
 
-        private void HandleInput()
+        private void HandleScroll()
         {
             if (!inputManager.inputEnabled)
             {
                 return;
             }
 
+            // Ignore input when mouse is outside of the game window
+            var mousePos = RealInput.mousePosition;
             if (Mouse.current != null && (
-                    RealInput.mousePosition.x < 0 || RealInput.mousePosition.x > RealScreen.width ||
-                    RealInput.mousePosition.y < 0 || RealInput.mousePosition.y > RealScreen.height))
+                    mousePos.x < 0 || mousePos.x > RealScreen.width ||
+                    mousePos.y < 0 || mousePos.y > RealScreen.height))
             {
-                // Ignore input when mouse is outside of the game window
                 return;
             }
 
@@ -349,7 +300,7 @@ namespace Nova
                 return;
             }
 
-            // When user clicks, text animation should stop, independent of canAbortAnimation
+            // When user clicks, text animation should stop, regardless of canAbortAnimation
             if (textIsAnimating)
             {
                 NovaAnimation.StopAll(AnimationType.Text);

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace Nova
 {
@@ -18,8 +18,8 @@ namespace Nova
         {
             rectTransform = GetComponent<RectTransform>();
             currentCanvas = GetComponentInParent<Canvas>();
-            buttonRing = GetComponentInChildren<ButtonRing>();
             backgroundBlur = transform.Find("BackgroundBlur").GetComponent<RectTransform>();
+            buttonRing = GetComponentInChildren<ButtonRing>();
         }
 
         private void ForceHideChildren()
@@ -31,6 +31,7 @@ namespace Nova
 
         public void Show(bool holdOpen)
         {
+            targetPosition = lastMousePosition ?? RealInput.mousePosition;
             NoShowIfMouseMoved();
 
             if (buttonShowing)
@@ -39,11 +40,11 @@ namespace Nova
             }
 
             this.holdOpen = holdOpen;
-            AdjustAnchorPosition();
 
+            AdjustAnchorPosition();
             buttonShowing = true;
-            buttonRing.gameObject.SetActive(true);
             backgroundBlur.gameObject.SetActive(true);
+            buttonRing.gameObject.SetActive(true);
 
             if (holdOpen)
             {
@@ -74,14 +75,14 @@ namespace Nova
 
         private void AdjustAnchorPosition()
         {
-            var targetPosition = currentCanvas.ScreenToCanvasPosition(RealInput.mousePosition);
-            rectTransform.anchoredPosition = targetPosition;
-            Vector2 v = currentCanvas.ViewportToCanvasPosition(Vector3.one) * 2;
+            rectTransform.anchoredPosition = currentCanvas.ScreenToCanvasPosition(targetPosition);
+            Vector2 v = currentCanvas.ViewportToCanvasPosition(Vector3.one) * 2.0f;
             backgroundBlur.offsetMin = -v;
             backgroundBlur.offsetMax = v;
         }
 
-        private Vector3? lastMousePosition = null;
+        private Vector2? lastMousePosition = null;
+        private Vector2 targetPosition;
 
         public void ShowIfMouseMoved()
         {
@@ -97,13 +98,10 @@ namespace Nova
 
         private void LateUpdate()
         {
-            if (lastMousePosition != null)
+            if (lastMousePosition != null &&
+                (RealInput.mousePosition - lastMousePosition.Value).magnitude > sectorRadius * 0.5f)
             {
-                if ((RealInput.mousePosition - lastMousePosition).Value.magnitude > 20f)
-                {
-                    lastMousePosition = null;
-                    Show(false);
-                }
+                Show(false);
             }
 
             // have to use late update
