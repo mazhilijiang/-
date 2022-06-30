@@ -1,4 +1,4 @@
-﻿// TODO: use circular buffer for log entries
+// TODO: use circular buffer for log entries
 
 using System;
 using System.Collections.Generic;
@@ -132,8 +132,8 @@ namespace Nova
 
             var logEntry = Instantiate(logEntryPrefab, logContent.transform);
 
-            UnityAction<int> onGoBackButtonClicked = logEntryIndex =>
-                OnGoBackButtonClicked(logParam.nodeHistoryEntry, logParam.dialogueIndex, logEntryIndex);
+            UnityAction onGoBackButtonClicked = () =>
+                OnGoBackButtonClicked(logParam.nodeHistoryEntry, logParam.dialogueIndex, logParam.logEntryIndex);
 
             UnityAction onPlayVoiceButtonClicked = null;
             if (logParam.voices.Any())
@@ -141,10 +141,7 @@ namespace Nova
                 onPlayVoiceButtonClicked = () => OnPlayVoiceButtonClicked(logParam.voices);
             }
 
-            UnityAction<int> onPointerExit = logEntryIndex => OnPointerExit(logEntryIndex);
-
-            logEntry.Init(logParam.displayData, onGoBackButtonClicked, onPlayVoiceButtonClicked, onPointerExit,
-                logParam.logEntryIndex);
+            logEntry.Init(logParam.displayData, onGoBackButtonClicked, onPlayVoiceButtonClicked);
 
             logEntries.Add(logEntry);
             logParams.Add(logParam);
@@ -171,7 +168,6 @@ namespace Nova
             int cnt = logEntries.Count;
             for (int i = index; i < cnt; ++i)
             {
-                logEntries[i].logEntryIndex = i;
                 logParams[i].logEntryIndex = i;
             }
         }
@@ -191,12 +187,13 @@ namespace Nova
             }
         }
 
-        private int lastClickedLogIndex = -1;
+        private int selectedLogEntryIndex = -1;
 
         private void OnGoBackButtonClicked(NodeHistoryEntry nodeHistoryEntry, int dialogueIndex, int logEntryIndex)
         {
-            if (logEntryIndex == lastClickedLogIndex)
+            if (logEntryIndex == selectedLogEntryIndex)
             {
+                selectedLogEntryIndex = -1;
                 Alert.Show(
                     null,
                     I18n.__("log.back.confirm"),
@@ -207,7 +204,7 @@ namespace Nova
             }
             else
             {
-                lastClickedLogIndex = logEntryIndex;
+                selectedLogEntryIndex = logEntryIndex;
             }
         }
 
@@ -216,17 +213,6 @@ namespace Nova
             GameCharacterController.ReplayVoice(voiceEntries);
         }
 
-        private void OnPointerExit(int logEntryIndex)
-        {
-            if (logEntryIndex == lastClickedLogIndex)
-            {
-                lastClickedLogIndex = -1;
-            }
-        }
-
-        /// <summary>
-        /// Show log panel
-        /// </summary>
         public override void Show(Action onFinish)
         {
             if (configManager.GetInt(LogViewFirstShownKey) == 0)
@@ -238,7 +224,7 @@ namespace Nova
             base.Show(onFinish);
 
             scrollRect.verticalNormalizedPosition = 0.0f;
-            lastClickedLogIndex = -1;
+            selectedLogEntryIndex = -1;
         }
 
         protected override void OnActivatedUpdate()
