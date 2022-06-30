@@ -11,22 +11,34 @@ namespace Nova
     /// <summary>
     /// Disables mouse when any touch starts and for a short time after it ends.
     /// On Windows, there is a virtual mouse driven by the touch, and we need to disable it.
-    /// The pointer up event and the drag event may not be invoked, so we need to save each pointer down event
-    /// and invoke the corresponding pointer up and drag events.
-    /// TODO: OnPointerUp should be invoked before Update
+    /// Pointer up and drag events may not be invoked, so we need to save each pointer down event
+    /// and invoke the corresponding events.
+    /// TODO: The events should be invoked before Update
     /// </summary>
     public class TouchPointerFix : MonoBehaviour
     {
         // The values in PointerEventData may change after the event is processed, so we need to save them
-        // TODO: More properties of ExtendedPointerEventData
-        private readonly struct SavedEventData
+        private class SavedEventData
         {
             private readonly PointerEventData.InputButton button;
+            private readonly int clickCount;
+            private readonly float clickTime;
+            private readonly Vector2 delta;
+            private readonly bool dragging;
+            private readonly bool eligibleForClick;
+            private readonly GameObject pointerClick;
             private readonly RaycastResult pointerCurrentRaycast;
+            private readonly GameObject pointerDrag;
             private readonly GameObject pointerEnter;
             private readonly int pointerId;
-            private readonly Vector2 position;
+            private readonly GameObject pointerPress;
+            private readonly RaycastResult pointerPressRaycast;
+            private readonly Vector2 pressPosition;
+            private readonly GameObject rawPointerPress;
+            private readonly Vector2 scrollDelta;
+            private readonly bool useDragThreshold;
 
+            private readonly InputControl control;
             private readonly InputDevice device;
             private readonly UIPointerType pointerType;
             private readonly int touchId;
@@ -34,11 +46,24 @@ namespace Nova
             public SavedEventData(ExtendedPointerEventData eventData)
             {
                 button = eventData.button;
+                clickCount = eventData.clickCount;
+                clickTime = eventData.clickTime;
+                delta = eventData.delta;
+                dragging = eventData.dragging;
+                eligibleForClick = eventData.eligibleForClick;
+                pointerClick = eventData.pointerClick;
                 pointerCurrentRaycast = eventData.pointerCurrentRaycast;
+                pointerDrag = eventData.pointerDrag;
                 pointerEnter = eventData.pointerEnter;
                 pointerId = eventData.pointerId;
-                position = eventData.position;
+                pointerPress = eventData.pointerPress;
+                pointerPressRaycast = eventData.pointerPressRaycast;
+                pressPosition = eventData.pressPosition;
+                rawPointerPress = eventData.rawPointerPress;
+                scrollDelta = eventData.scrollDelta;
+                useDragThreshold = eventData.useDragThreshold;
 
+                control = eventData.control;
                 device = eventData.device;
                 pointerType = eventData.pointerType;
                 touchId = eventData.touchId;
@@ -49,16 +74,26 @@ namespace Nova
                 var eventData = new ExtendedPointerEventData(EventSystem.current)
                 {
                     button = savedData.button,
+                    clickCount = savedData.clickCount,
+                    clickTime = savedData.clickTime,
+                    delta = savedData.delta,
+                    dragging = savedData.dragging,
+                    eligibleForClick = savedData.eligibleForClick,
+                    pointerClick = savedData.pointerClick,
                     pointerCurrentRaycast = savedData.pointerCurrentRaycast,
+                    pointerDrag = savedData.pointerDrag,
                     pointerEnter = savedData.pointerEnter,
                     pointerId = savedData.pointerId,
+                    pointerPress = savedData.pointerPress,
+                    pointerPressRaycast = savedData.pointerPressRaycast,
+                    pressPosition = savedData.pressPosition,
+                    rawPointerPress = savedData.rawPointerPress,
+                    scrollDelta = savedData.scrollDelta,
+                    useDragThreshold = savedData.useDragThreshold,
+
                     position = RealInput.pointerPosition,
 
-                    eligibleForClick = true,
-                    pointerPress = savedData.pointerEnter,
-                    pointerPressRaycast = savedData.pointerCurrentRaycast,
-                    pressPosition = savedData.position,
-
+                    control = savedData.control,
                     device = savedData.device,
                     pointerType = savedData.pointerType,
                     touchId = savedData.touchId
@@ -90,6 +125,24 @@ namespace Nova
             if (eventData.pointerType == UIPointerType.Touch)
             {
                 Current.AddPointerDown(handler, eventData);
+                return false;
+            }
+            else
+            {
+                return !Current.mouseEnabled;
+            }
+        }
+
+        public static bool SkipOrAddDrag(IDragHandler handler, ExtendedPointerEventData eventData)
+        {
+            if (Application.isMobilePlatform || Current == null)
+            {
+                return false;
+            }
+
+            if (eventData.pointerType == UIPointerType.Touch)
+            {
+                Current.AddDrag(handler, eventData);
                 return false;
             }
             else
@@ -148,11 +201,17 @@ namespace Nova
             {
                 InvokeAllPointerUp();
             }
-            else
+
+            if (dragging != null)
             {
-                if (dragging != null)
+                if (Touch.activeTouches.Count == 0)
                 {
-                    // TODO: The drag event may be already invoked, so the new drag event may be duplicate
+                    InvokeEndDrag();
+                    dragging = null;
+                }
+                else
+                {
+                    // TODO: The drag event may be already invoked, so the new event may be duplicate
                     var pointerPosition = RealInput.pointerPosition;
                     if (pointerPosition != draggingPosition)
                     {
@@ -175,9 +234,26 @@ namespace Nova
 
             if (handler is IDragHandler dragHandler)
             {
+                InvokeEndDrag();
                 dragging = dragHandler;
                 draggingEvent = savedData;
                 draggingPosition = eventData.position;
+            }
+        }
+
+        private void AddDrag(IDragHandler handler, ExtendedPointerEventData eventData)
+        {
+            InvokeEndDrag();
+            dragging = handler;
+            draggingEvent = new SavedEventData(eventData);
+            draggingPosition = eventData.position;
+        }
+
+        private void InvokeEndDrag()
+        {
+            if (dragging is IEndDragHandler handler)
+            {
+                handler.OnEndDrag((ExtendedPointerEventData)draggingEvent);
             }
         }
 
@@ -201,8 +277,6 @@ namespace Nova
             }
 
             pointerDownEvents.Clear();
-
-            dragging = null;
         }
     }
 }
