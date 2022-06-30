@@ -37,7 +37,7 @@ namespace Nova
             // Show cursor and clear selection when mouse moves or clicks
             var mousePosition = RealInput.mousePosition;
             if (mousePosition != lastMousePosition ||
-                Mouse.current?.allControls.OfType<ButtonControl>().Any(control => control.isPressed) == true)
+                Mouse.current.allControls.OfType<ButtonControl>().Any(control => control.isPressed))
             {
                 Cursor.visible = true;
                 lastMousePosition = mousePosition;
