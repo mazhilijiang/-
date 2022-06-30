@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.UI;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 namespace Nova
@@ -10,8 +11,8 @@ namespace Nova
     /// <summary>
     /// Disables mouse when any touch starts and for a short time after it ends.
     /// On Windows, there is a virtual mouse driven by the touch, and we need to disable it.
-    /// Also, the pointer up event is not invoked, so we need to save each pointer down event and invoke the
-    /// corresponding pointer up event.
+    /// The pointer up event and the drag event may not be invoked, so we need to save each pointer down event
+    /// and invoke the corresponding pointer up and drag events.
     /// TODO: OnPointerUp should be invoked before Update
     /// </summary>
     public class TouchPointerFix : MonoBehaviour
@@ -51,7 +52,7 @@ namespace Nova
                     pointerCurrentRaycast = savedData.pointerCurrentRaycast,
                     pointerEnter = savedData.pointerEnter,
                     pointerId = savedData.pointerId,
-                    position = savedData.position,
+                    position = RealInput.pointerPosition,
 
                     eligibleForClick = true,
                     pointerPress = savedData.pointerEnter,
@@ -71,7 +72,7 @@ namespace Nova
 
         public static bool Skip(ExtendedPointerEventData eventData)
         {
-            if (Current == null || eventData.pointerType == UIPointerType.Touch)
+            if (Application.isMobilePlatform || Current == null || eventData.pointerType == UIPointerType.Touch)
             {
                 return false;
             }
@@ -81,7 +82,7 @@ namespace Nova
 
         public static bool SkipOrAdd(IPointerUpHandler handler, ExtendedPointerEventData eventData)
         {
-            if (Current == null)
+            if (Application.isMobilePlatform || Current == null)
             {
                 return false;
             }
@@ -105,6 +106,10 @@ namespace Nova
         private readonly Dictionary<IPointerUpHandler, SavedEventData> pointerDownEvents =
             new Dictionary<IPointerUpHandler, SavedEventData>();
 
+        private IDragHandler dragging;
+        private SavedEventData draggingEvent;
+        private Vector2 draggingPosition;
+
         private void Awake()
         {
             Current = this;
@@ -112,7 +117,7 @@ namespace Nova
 
         private void Update()
         {
-            if (Mouse.current == null)
+            if (Application.isMobilePlatform || Mouse.current == null)
             {
                 return;
             }
@@ -143,17 +148,37 @@ namespace Nova
             {
                 InvokeAllPointerUp();
             }
+            else
+            {
+                if (dragging != null)
+                {
+                    // TODO: The drag event may be already invoked, so the new drag event may be duplicate
+                    var pointerPosition = RealInput.pointerPosition;
+                    if (pointerPosition != draggingPosition)
+                    {
+                        dragging.OnDrag((ExtendedPointerEventData)draggingEvent);
+                        draggingPosition = pointerPosition;
+                    }
+                }
+            }
         }
 
         private void AddPointerDown(IPointerUpHandler handler, ExtendedPointerEventData eventData)
         {
             if (pointerDownEvents.ContainsKey(handler))
             {
-                // TODO: Do we need to invoke OnPointerUp on all components?
                 handler.OnPointerUp((ExtendedPointerEventData)pointerDownEvents[handler]);
             }
 
-            pointerDownEvents[handler] = new SavedEventData(eventData);
+            var savedData = new SavedEventData(eventData);
+            pointerDownEvents[handler] = savedData;
+
+            if (handler is IDragHandler dragHandler)
+            {
+                dragging = dragHandler;
+                draggingEvent = savedData;
+                draggingPosition = eventData.position;
+            }
         }
 
         private void InvokeAllPointerUp()
@@ -165,12 +190,19 @@ namespace Nova
 
             foreach (var pair in pointerDownEvents)
             {
-                var go = ((MonoBehaviour)pair.Key).gameObject;
                 var eventData = (ExtendedPointerEventData)pair.Value;
-                ExecuteEvents.Execute<IPointerUpHandler>(go, eventData, (x, y) => x.OnPointerUp((PointerEventData)y));
+                pair.Key.OnPointerUp(eventData);
+
+                var selectable = (pair.Key as MonoBehaviour)?.gameObject.GetComponent<Selectable>();
+                if (selectable != null)
+                {
+                    selectable.OnPointerUp(eventData);
+                }
             }
 
             pointerDownEvents.Clear();
+
+            dragging = null;
         }
     }
 }
