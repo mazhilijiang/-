@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Nova
@@ -27,28 +26,16 @@ namespace Nova
             activeSprite = fore.sprite;
         }
 
-        public void OnPointerEnter(PointerEventData _eventData)
+        public void OnPointerEnter(PointerEventData eventData)
         {
-            var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
             back.sprite = inactiveHoverSprite;
             back.SetNativeSize();
             fore.sprite = activeHoverSprite;
             fore.SetNativeSize();
         }
 
-        public void OnPointerExit(PointerEventData _eventData)
+        public void OnPointerExit(PointerEventData eventData)
         {
-            var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
             back.sprite = inactiveSprite;
             back.SetNativeSize();
             fore.sprite = activeSprite;

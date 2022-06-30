@@ -146,13 +146,6 @@ namespace Nova
         public void OnPointerUp(PointerEventData _eventData)
         {
             var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
-            // Debug.Log($"OnPointerUp {eventData.pointerId} {eventData.pointerType} {eventData.button} {Utils.GetPath(this)}\n{eventData}");
-
             if (!inputManager.inputEnabled)
             {
                 if (eventData.pointerType == UIPointerType.Touch ||
@@ -219,13 +212,6 @@ namespace Nova
         public void OnPointerDown(PointerEventData _eventData)
         {
             var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.SkipOrAdd(this, eventData))
-            {
-                return;
-            }
-
-            // Debug.Log($"OnPointerDown {eventData.pointerId} {eventData.pointerType} {eventData.button} {Utils.GetPath(this)}\n{eventData}");
-
             if (!inputManager.inputEnabled ||
                 viewManager.currentView != CurrentViewType.Game ||
                 buttonRingTrigger.buttonShowing)

@@ -23,11 +23,6 @@ namespace Nova
         public void OnPointerDown(PointerEventData _eventData)
         {
             var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.SkipOrAdd(this, eventData))
-            {
-                return;
-            }
-
             // Only mouse left button or touch plays sound
             if (eventData.pointerType == UIPointerType.MouseOrPen &&
                 eventData.button != PointerEventData.InputButton.Left)
@@ -41,11 +36,6 @@ namespace Nova
         public void OnPointerUp(PointerEventData _eventData)
         {
             var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
             // Only mouse left button or touch plays sound
             if (eventData.pointerType == UIPointerType.MouseOrPen &&
                 eventData.button != PointerEventData.InputButton.Left)
@@ -61,14 +51,8 @@ namespace Nova
             viewManager.TryPlaySound(mouseUp);
         }
 
-        public void OnPointerEnter(PointerEventData _eventData)
+        public void OnPointerEnter(PointerEventData eventData)
         {
-            var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
             // TODO: Is the loop correct?
             if (mouseInsideLoop != null)
             {
@@ -80,14 +64,8 @@ namespace Nova
             }
         }
 
-        public void OnPointerExit(PointerEventData _eventData)
+        public void OnPointerExit(PointerEventData eventData)
         {
-            var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
             if (mouseInsideLoop != null)
             {
                 viewManager.TryStopSound();

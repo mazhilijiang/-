@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Nova
@@ -103,25 +102,13 @@ namespace Nova
             RefreshTimeIndication();
         }
 
-        public void OnPointerDown(PointerEventData _eventData)
+        public void OnPointerDown(PointerEventData eventData)
         {
-            var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.SkipOrAdd(this, eventData))
-            {
-                return;
-            }
-
             isDragging = true;
         }
 
-        public void OnPointerUp(PointerEventData _eventData)
+        public void OnPointerUp(PointerEventData eventData)
         {
-            var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
             isDragging = false;
             progressRatio = slider.value;
         }

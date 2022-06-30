@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Nova
@@ -115,25 +114,13 @@ namespace Nova
             onPointerExit = onThumbnailButtonExit;
         }
 
-        public void OnPointerEnter(PointerEventData _eventData)
+        public void OnPointerEnter(PointerEventData eventData)
         {
-            var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
             onPointerEnter?.Invoke();
         }
 
-        public void OnPointerExit(PointerEventData _eventData)
+        public void OnPointerExit(PointerEventData eventData)
         {
-            var eventData = (ExtendedPointerEventData)_eventData;
-            if (TouchPointerFix.Skip(eventData))
-            {
-                return;
-            }
-
             onPointerExit?.Invoke();
         }
 
