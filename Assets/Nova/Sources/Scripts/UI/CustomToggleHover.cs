@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Nova
@@ -10,7 +11,8 @@ namespace Nova
         public Sprite inactiveHoverSprite;
         public Sprite activeHoverSprite;
 
-        private Image back, fore;
+        private Image back;
+        private Image fore;
         private Sprite inactiveSprite;
         private Sprite activeSprite;
 
@@ -19,25 +21,38 @@ namespace Nova
             var toggle = GetComponent<Toggle>();
             back = toggle.targetGraphic as Image;
             fore = toggle.graphic as Image;
-            this.RuntimeAssert(back != null && fore != null, "Graphic should be Image.");
+            this.RuntimeAssert(back != null, "toggle.targetGraphic should be Image.");
+            this.RuntimeAssert(fore != null, "toggle.graphic should be Image.");
             inactiveSprite = back.sprite;
             activeSprite = fore.sprite;
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        public void OnPointerEnter(PointerEventData _eventData)
         {
-            fore.sprite = activeHoverSprite;
-            fore.SetNativeSize();
+            var eventData = (ExtendedPointerEventData)_eventData;
+            if (TouchPointerFix.Skip(eventData))
+            {
+                return;
+            }
+
             back.sprite = inactiveHoverSprite;
             back.SetNativeSize();
+            fore.sprite = activeHoverSprite;
+            fore.SetNativeSize();
         }
 
-        public void OnPointerExit(PointerEventData eventData)
+        public void OnPointerExit(PointerEventData _eventData)
         {
-            fore.sprite = activeSprite;
-            fore.SetNativeSize();
+            var eventData = (ExtendedPointerEventData)_eventData;
+            if (TouchPointerFix.Skip(eventData))
+            {
+                return;
+            }
+
             back.sprite = inactiveSprite;
             back.SetNativeSize();
+            fore.sprite = activeSprite;
+            fore.SetNativeSize();
         }
     }
 }
