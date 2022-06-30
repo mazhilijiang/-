@@ -16,13 +16,13 @@ namespace Nova
         public float hideAfterSeconds = 5.0f;
 
         private EventSystem eventSystem;
-        private Vector2 lastPointerPosition;
+        private Vector2 lastMousePosition;
         private float idleTime;
 
         private void Start()
         {
             eventSystem = EventSystem.current;
-            lastPointerPosition = RealInput.pointerPosition;
+            lastMousePosition = RealInput.mousePosition;
         }
 
         private void Update()
@@ -35,12 +35,12 @@ namespace Nova
             }
 
             // Show cursor and clear selection when mouse moves or clicks
-            var pointerPosition = RealInput.pointerPosition;
-            if (pointerPosition != lastPointerPosition ||
+            var mousePosition = RealInput.mousePosition;
+            if (mousePosition != lastMousePosition ||
                 Mouse.current?.allControls.OfType<ButtonControl>().Any(control => control.isPressed) == true)
             {
                 Cursor.visible = true;
-                lastPointerPosition = pointerPosition;
+                lastMousePosition = mousePosition;
                 idleTime = 0.0f;
                 eventSystem.SetSelectedGameObject(null);
                 return;
