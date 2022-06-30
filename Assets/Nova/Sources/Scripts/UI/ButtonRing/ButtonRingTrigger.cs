@@ -14,6 +14,8 @@ namespace Nova
 
         public float sectorRadius => buttonRing.sectorRadius;
 
+        private Vector2? lastPointerPosition;
+
         private void Awake()
         {
             rectTransform = GetComponent<RectTransform>();
@@ -31,9 +33,6 @@ namespace Nova
 
         public void Show(bool holdOpen)
         {
-            targetPosition = lastMousePosition ?? RealInput.mousePosition;
-            NoShowIfMouseMoved();
-
             if (buttonShowing)
             {
                 return;
@@ -54,8 +53,6 @@ namespace Nova
 
         public void Hide(bool triggerAction)
         {
-            NoShowIfMouseMoved();
-
             if (!buttonShowing)
             {
                 return;
@@ -63,6 +60,7 @@ namespace Nova
 
             holdOpen = false;
 
+            lastPointerPosition = null;
             buttonShowing = false;
             if (!triggerAction)
             {
@@ -75,37 +73,36 @@ namespace Nova
 
         private void AdjustAnchorPosition()
         {
+            var targetPosition = lastPointerPosition ?? RealInput.pointerPosition;
             rectTransform.anchoredPosition = currentCanvas.ScreenToCanvasPosition(targetPosition);
             Vector2 v = currentCanvas.ViewportToCanvasPosition(Vector3.one) * 2.0f;
             backgroundBlur.offsetMin = -v;
             backgroundBlur.offsetMax = v;
         }
 
-        private Vector2? lastMousePosition = null;
-        private Vector2 targetPosition;
-
-        public void ShowIfMouseMoved()
+        public void ShowIfPointerMoved()
         {
-            lastMousePosition = RealInput.mousePosition;
+            lastPointerPosition = RealInput.pointerPosition;
         }
 
-        public void NoShowIfMouseMoved()
+        public void NoShowIfPointerMoved()
         {
-            lastMousePosition = null;
+            lastPointerPosition = null;
         }
 
         private bool isFirstCalled = true;
 
+        // Have to use late update
         private void LateUpdate()
         {
-            if (lastMousePosition != null &&
-                (RealInput.mousePosition - lastMousePosition.Value).magnitude > sectorRadius * 0.5f)
+            if (!buttonShowing &&
+                lastPointerPosition != null &&
+                (RealInput.pointerPosition - lastPointerPosition.Value).magnitude > sectorRadius * 0.5f)
             {
                 Show(false);
             }
 
-            // have to use late update
-            // wait for all background sectors fully initialized
+            // Wait for all sectors to initialize
             if (!isFirstCalled) return;
             ForceHideChildren();
             isFirstCalled = false;

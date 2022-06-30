@@ -1,4 +1,4 @@
-﻿// TODO: check on all platforms that when a touch is detected, the platform will hide the cursor
+// TODO: check on all platforms that when a touch is detected, the platform will hide the cursor
 
 using System.Linq;
 using UnityEngine;
@@ -15,18 +15,18 @@ namespace Nova
     {
         public float hideAfterSeconds = 5.0f;
 
-        private Vector2 lastCursorPosition;
+        private EventSystem eventSystem;
+        private Vector2 lastPointerPosition;
         private float idleTime;
 
-        private void Awake()
+        private void Start()
         {
-            lastCursorPosition = RealInput.mousePosition;
+            eventSystem = EventSystem.current;
+            lastPointerPosition = RealInput.pointerPosition;
         }
 
         private void Update()
         {
-            var eventSystem = EventSystem.current;
-
             // Clear selection on mobile platforms
             if (Application.isMobilePlatform)
             {
@@ -35,12 +35,12 @@ namespace Nova
             }
 
             // Show cursor and clear selection when mouse moves or clicks
-            var cursorPosition = RealInput.mousePosition;
-            if (cursorPosition != lastCursorPosition ||
+            var pointerPosition = RealInput.pointerPosition;
+            if (pointerPosition != lastPointerPosition ||
                 Mouse.current?.allControls.OfType<ButtonControl>().Any(control => control.isPressed) == true)
             {
                 Cursor.visible = true;
-                lastCursorPosition = cursorPosition;
+                lastPointerPosition = pointerPosition;
                 idleTime = 0.0f;
                 eventSystem.SetSelectedGameObject(null);
                 return;

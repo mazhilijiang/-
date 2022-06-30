@@ -65,19 +65,6 @@ namespace Nova
 
                 return eventData;
             }
-
-            public override string ToString()
-            {
-                return "SavedEventData:\n" +
-                    $"button: {button}\n" +
-                    $"pointerCurrentRaycast: {pointerCurrentRaycast}\n" +
-                    $"pointerEnter: {pointerEnter}\n" +
-                    $"pointerId: {pointerId}\n" +
-                    $"position: {position}\n" +
-                    $"device: {device}\n" +
-                    $"pointerType: {pointerType}\n" +
-                    $"touchId: {touchId}";
-            }
         }
 
         private static TouchPointerFix Current;
@@ -135,7 +122,6 @@ namespace Nova
                 // Disable mouse when touch is detected
                 if (Touch.activeTouches.Count > 0)
                 {
-                    // Debug.Log("Disable mouse");
                     mouseEnabled = false;
                     idleTime = 0.0f;
                 }
@@ -148,7 +134,6 @@ namespace Nova
                     idleTime += Time.unscaledDeltaTime;
                     if (idleTime > waitSeconds)
                     {
-                        // Debug.Log("Enable mouse");
                         mouseEnabled = true;
                     }
                 }
@@ -164,23 +149,25 @@ namespace Nova
         {
             if (pointerDownEvents.ContainsKey(handler))
             {
-                InvokePointerUp(handler, pointerDownEvents[handler]);
+                InvokePointerUp(handler, pointerDownEvents[handler], false);
             }
 
-            // Debug.Log($"AddPointerDown {Utils.GetPath((MonoBehaviour)handler)}\n{eventData}");
             pointerDownEvents[handler] = new SavedEventData(eventData);
         }
 
-        private static void InvokePointerUp(IPointerUpHandler handler, SavedEventData savedData)
+        private static void InvokePointerUp(IPointerUpHandler handler, SavedEventData savedData, bool clearSelection)
         {
-            var mb = (MonoBehaviour)handler;
-            var selectable = mb.GetComponent<Selectable>();
             var eventData = (ExtendedPointerEventData)savedData;
-            // Debug.Log($"InvokePointerUp {Utils.GetPath(mb)}\n{selectable}\n\n{savedData}\n\n{eventData}");
             handler.OnPointerUp(eventData);
-            if (selectable != null)
+
+            if (clearSelection)
             {
-                selectable.OnPointerUp(eventData);
+                var mb = (MonoBehaviour)handler;
+                var selectable = mb.GetComponent<Selectable>();
+                if (selectable != null)
+                {
+                    selectable.OnPointerUp(eventData);
+                }
             }
         }
 
@@ -193,7 +180,7 @@ namespace Nova
 
             foreach (var pair in pointerDownEvents)
             {
-                InvokePointerUp(pair.Key, pair.Value);
+                InvokePointerUp(pair.Key, pair.Value, true);
             }
 
             pointerDownEvents.Clear();
