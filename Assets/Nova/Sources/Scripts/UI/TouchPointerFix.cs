@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
-using UnityEngine.UI;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 namespace Nova
@@ -21,15 +20,15 @@ namespace Nova
         // TODO: More properties of ExtendedPointerEventData
         private readonly struct SavedEventData
         {
-            public readonly PointerEventData.InputButton button;
-            public readonly RaycastResult pointerCurrentRaycast;
-            public readonly GameObject pointerEnter;
-            public readonly int pointerId;
-            public readonly Vector2 position;
+            private readonly PointerEventData.InputButton button;
+            private readonly RaycastResult pointerCurrentRaycast;
+            private readonly GameObject pointerEnter;
+            private readonly int pointerId;
+            private readonly Vector2 position;
 
-            public readonly InputDevice device;
-            public readonly UIPointerType pointerType;
-            public readonly int touchId;
+            private readonly InputDevice device;
+            private readonly UIPointerType pointerType;
+            private readonly int touchId;
 
             public SavedEventData(ExtendedPointerEventData eventData)
             {
@@ -46,22 +45,23 @@ namespace Nova
 
             public static explicit operator ExtendedPointerEventData(SavedEventData savedData)
             {
-                var eventData = new ExtendedPointerEventData(EventSystem.current);
+                var eventData = new ExtendedPointerEventData(EventSystem.current)
+                {
+                    button = savedData.button,
+                    pointerCurrentRaycast = savedData.pointerCurrentRaycast,
+                    pointerEnter = savedData.pointerEnter,
+                    pointerId = savedData.pointerId,
+                    position = savedData.position,
 
-                eventData.button = savedData.button;
-                eventData.pointerCurrentRaycast = savedData.pointerCurrentRaycast;
-                eventData.pointerEnter = savedData.pointerEnter;
-                eventData.pointerId = savedData.pointerId;
-                eventData.position = savedData.position;
+                    eligibleForClick = true,
+                    pointerPress = savedData.pointerEnter,
+                    pointerPressRaycast = savedData.pointerCurrentRaycast,
+                    pressPosition = savedData.position,
 
-                eventData.eligibleForClick = true;
-                eventData.pointerPress = savedData.pointerEnter;
-                eventData.pointerPressRaycast = savedData.pointerCurrentRaycast;
-                eventData.pressPosition = savedData.position;
-
-                eventData.device = savedData.device;
-                eventData.pointerType = savedData.pointerType;
-                eventData.touchId = savedData.touchId;
+                    device = savedData.device,
+                    pointerType = savedData.pointerType,
+                    touchId = savedData.touchId
+                };
 
                 return eventData;
             }
@@ -149,26 +149,11 @@ namespace Nova
         {
             if (pointerDownEvents.ContainsKey(handler))
             {
-                InvokePointerUp(handler, pointerDownEvents[handler], false);
+                // TODO: Do we need to invoke OnPointerUp on all components?
+                handler.OnPointerUp((ExtendedPointerEventData)pointerDownEvents[handler]);
             }
 
             pointerDownEvents[handler] = new SavedEventData(eventData);
-        }
-
-        private static void InvokePointerUp(IPointerUpHandler handler, SavedEventData savedData, bool clearSelection)
-        {
-            var eventData = (ExtendedPointerEventData)savedData;
-            handler.OnPointerUp(eventData);
-
-            if (clearSelection)
-            {
-                var mb = (MonoBehaviour)handler;
-                var selectable = mb.GetComponent<Selectable>();
-                if (selectable != null)
-                {
-                    selectable.OnPointerUp(eventData);
-                }
-            }
         }
 
         private void InvokeAllPointerUp()
@@ -180,7 +165,9 @@ namespace Nova
 
             foreach (var pair in pointerDownEvents)
             {
-                InvokePointerUp(pair.Key, pair.Value, true);
+                var go = ((MonoBehaviour)pair.Key).gameObject;
+                var eventData = (ExtendedPointerEventData)pair.Value;
+                ExecuteEvents.Execute<IPointerUpHandler>(go, eventData, (x, y) => x.OnPointerUp((PointerEventData)y));
             }
 
             pointerDownEvents.Clear();
