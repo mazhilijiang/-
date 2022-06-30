@@ -137,7 +137,7 @@ namespace Nova
         {
             get
             {
-                var p = RealInput.mousePosition;
+                var p = RealInput.pointerPosition;
                 float r = buttonRingTrigger.sectorRadius * RealScreen.scale * 0.5f;
                 return p.x > r && p.x < RealScreen.width - r && p.y > r && p.y < RealScreen.height - r;
             }
@@ -185,7 +185,9 @@ namespace Nova
 
             if (eventData.pointerType == UIPointerType.Touch || eventData.button == PointerEventData.InputButton.Left)
             {
-                var link = dialogueBoxController.FindIntersectingLink(RealInput.mousePosition, UICameraHelper.Active);
+                buttonRingTrigger.NoShowIfPointerMoved();
+
+                var link = dialogueBoxController.FindIntersectingLink(RealInput.pointerPosition, UICameraHelper.Active);
                 if (!string.IsNullOrEmpty(link))
                 {
                     Application.OpenURL(link);
@@ -198,7 +200,8 @@ namespace Nova
 
             if (eventData.button == PointerEventData.InputButton.Right)
             {
-                buttonRingTrigger.NoShowIfMouseMoved();
+                buttonRingTrigger.NoShowIfPointerMoved();
+
                 if (rightButtonAction == RightButtonAction.HideDialoguePanel)
                 {
                     dialogueBoxController.Hide();
@@ -237,7 +240,7 @@ namespace Nova
             {
                 if (canTriggerButtonRing)
                 {
-                    buttonRingTrigger.ShowIfMouseMoved();
+                    buttonRingTrigger.ShowIfPointerMoved();
                 }
             }
         }
@@ -251,9 +254,8 @@ namespace Nova
 
             // Ignore input when mouse is outside of the game window
             var mousePos = RealInput.mousePosition;
-            if (Mouse.current != null && (
-                    mousePos.x < 0 || mousePos.x > RealScreen.width ||
-                    mousePos.y < 0 || mousePos.y > RealScreen.height))
+            if (mousePos.x < 0 || mousePos.x > RealScreen.width ||
+                mousePos.y < 0 || mousePos.y > RealScreen.height)
             {
                 return;
             }
